@@ -194,7 +194,9 @@ class Gwas:
             logging.info(f"Skipping header: {f_handle.readline().strip()}")
 
         # store results in a serialised temp file to reduce memory usage
-        results = tempfile.TemporaryFile()
+        # results = tempfile.NamedTemporaryFile()
+        # logging.info(f"Temp file: {results.name}")
+        results = {}
 
         p_value_handler = PvalueHandler()
 
@@ -360,13 +362,15 @@ class Gwas:
             # keep file position sorted by chromosome position for recall later
             if result.chrom not in file_idx:
                 file_idx[result.chrom] = []
-            heappush(file_idx[result.chrom], (result.pos, results.tell()))
+            heappush(file_idx[result.chrom], result.pos)
 
-            try:
-                pickle.dump(result, results)
-            except Exception as exception_name:
-                logging.error(f"Could not write to {tempfile.gettempdir()}:", exception_name)
-                raise exception_name
+            results[f"{result.chrom}_{result.pos}"] = result
+
+            # try:
+            #     pickle.dump(result, results)
+            # except Exception as exception_name:
+            #     logging.error(f"Could not write to {tempfile.gettempdir()}:", exception_name)
+            #     raise exception_name
 
         f_handle.close()
 

@@ -155,10 +155,12 @@ class Vcf:
                 chr_pos = heappop(gwas_idx[contig])
 
                 # load GWAS result
-                gwas_file.seek(chr_pos[1])
-                result = pickle.load(gwas_file)
+                # gwas_file.seek(chr_pos[1])
+                # result = pickle.load(gwas_file)
+                result = gwas_file['{}_{}'.format(contig,
+                                                  chr_pos)]
 
-                result.nlog_pval = result.nlog_pval
+                #result.nlog_pval = result.nlog_pval
 
                 # check floats
                 if Vcf.is_float32_lossy(result.b):
@@ -197,9 +199,6 @@ class Vcf:
                 record.alleles = (result.ref, result.alt)
                 record.filter.add(result.vcf_filter)
 
-                if result.alt_freq is not None:
-                    record.info["AF"] = result.alt_freq
-
                 if result.b is not None:
                     record.samples[trait_id]["ES"] = result.b
                 if result.se is not None:
@@ -208,6 +207,7 @@ class Vcf:
                     record.samples[trait_id]["LP"] = result.nlog_pval
                 if result.alt_freq is not None:
                     record.samples[trait_id]["AF"] = result.alt_freq
+                    record.info["AF"] = result.alt_freq
                 if result.n is not None:
                     record.samples[trait_id]["SS"] = round(result.n)
                 if result.imp_z is not None:

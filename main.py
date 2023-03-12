@@ -230,7 +230,7 @@ def main():
     )
 
     # close temp file to release disk space
-    gwas.close()
+    # gwas.close()
 
 
 if __name__ == "__main__":
