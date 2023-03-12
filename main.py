@@ -74,6 +74,14 @@ def main():
         help="Default is to index tbi but use this flag to index csi",
     )
     parser.add_argument(
+        "--fast",
+        dest="fast",
+        action="store_true",
+        default=False,
+        required=False,
+        help="faster processing but keeps everything in RAM",
+    )
+    parser.add_argument(
         "--log",
         dest="log",
         required=False,
@@ -174,6 +182,7 @@ def main():
     with pysam.FastaFile(args.ref) as fasta:
         gwas, idx, sample_metadata = Gwas.read_from_file(
             args.data,
+            args.fast,
             fasta,
             json_data["chr_col"],
             json_data["pos_col"],
@@ -227,10 +236,12 @@ def main():
         sample_metadata,
         file_metadata,
         args.csi,
+        args.fast,
     )
 
     # close temp file to release disk space
-    # gwas.close()
+    if not args.fast:
+        gwas.close()
 
 
 if __name__ == "__main__":

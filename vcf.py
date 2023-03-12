@@ -60,6 +60,7 @@ class Vcf:
         sample_metadata=None,
         file_metadata=None,
         csi=False,
+        fast_mode=False,
     ):
         logging.info(f"Writing headers to BCF/VCF: {path}")
 
@@ -154,11 +155,13 @@ class Vcf:
             while gwas_idx[contig]:
                 chr_pos = heappop(gwas_idx[contig])
 
-                # load GWAS result
-                # gwas_file.seek(chr_pos[1])
-                # result = pickle.load(gwas_file)
-                result = gwas_file['{}_{}'.format(contig,
-                                                  chr_pos)]
+                if fast_mode:
+                    result = gwas_file['{}_{}'.format(contig, chr_pos)]
+                else:
+                    # load GWAS result
+                    gwas_file.seek(chr_pos[1])
+                    result = pickle.load(gwas_file)
+
 
                 #result.nlog_pval = result.nlog_pval
 

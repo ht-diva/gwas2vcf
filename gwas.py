@@ -127,6 +127,7 @@ class Gwas:
     @staticmethod
     def read_from_file(
         input_file_path,
+        fast_mode,
         fasta,
         chrom_col_num,
         pos_col_num,
@@ -193,10 +194,12 @@ class Gwas:
         if header:
             logging.info(f"Skipping header: {f_handle.readline().strip()}")
 
-        # store results in a serialised temp file to reduce memory usage
-        # results = tempfile.NamedTemporaryFile()
-        # logging.info(f"Temp file: {results.name}")
-        results = {}
+        if fast_mode:
+            results = {}
+            logging.info("Fast mode enabled, keep everything in RAM")
+        else:
+            # store results in a serialised temp file to reduce memory usage
+            results = tempfile.TemporaryFile()
 
         p_value_handler = PvalueHandler()
 
@@ -362,15 +365,17 @@ class Gwas:
             # keep file position sorted by chromosome position for recall later
             if result.chrom not in file_idx:
                 file_idx[result.chrom] = []
-            heappush(file_idx[result.chrom], result.pos)
 
-            results[f"{result.chrom}_{result.pos}"] = result
-
-            # try:
-            #     pickle.dump(result, results)
-            # except Exception as exception_name:
-            #     logging.error(f"Could not write to {tempfile.gettempdir()}:", exception_name)
-            #     raise exception_name
+            if fast_mode:
+                heappush(file_idx[result.chrom], result.pos)
+                results[f"{result.chrom}_{result.pos}"] = result
+            else:
+                heappush(file_idx[result.chrom], (result.pos, results.tell()))
+                try:
+                    pickle.dump(result, results)
+                except Exception as exception_name:
+                    logging.error(f"Could not write to {tempfile.gettempdir()}:", exception_name)
+                    raise exception_name
 
         f_handle.close()
 
