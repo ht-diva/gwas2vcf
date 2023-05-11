@@ -82,6 +82,14 @@ def main():
         help="faster processing but keeps everything in RAM",
     )
     parser.add_argument(
+        "--vid", "--variant_identifiers",
+        dest="vid",
+        choices=['alphabetical_order', 'concatenate', 'rsid'],
+        default='rsid',
+        required=False,
+        help="Set the variant identifier to use",
+    )
+    parser.add_argument(
         "--log",
         dest="log",
         required=False,
@@ -176,9 +184,13 @@ def main():
     else:
         alias = None
 
+    logging.info("Variant identifiers mode is {}".format(args.vid))
+
     # read in data
     # harmonise, left align and trim on-the-fly and write to pickle format
-    # keep file index for each record and chromosome position to write out karyotypically sorted records later
+    # keep file index for each record and chromosome position to write out
+    # karyotypically sorted records later
+
     with pysam.FastaFile(args.ref) as fasta:
         gwas, idx, sample_metadata = Gwas.read_from_file(
             args.data,
@@ -233,6 +245,7 @@ def main():
         fasta,
         json_data["build"],
         args.id,
+        args.vid,
         sample_metadata,
         file_metadata,
         args.csi,

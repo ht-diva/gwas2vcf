@@ -22,10 +22,10 @@ class Vcf:
     @staticmethod
     def is_float32_lossy(input_float):
         if (
-            input_float == 0
-            or input_float is None
-            or input_float == np.inf
-            or input_float == -np.inf
+                input_float == 0
+                or input_float is None
+                or input_float == np.inf
+                or input_float == -np.inf
         ):
             return False
 
@@ -51,16 +51,17 @@ class Vcf:
 
     @staticmethod
     def write_to_file(
-        gwas_file,
-        gwas_idx,
-        path,
-        fasta,
-        build,
-        trait_id,
-        sample_metadata=None,
-        file_metadata=None,
-        csi=False,
-        fast_mode=False,
+            gwas_file,
+            gwas_idx,
+            path,
+            fasta,
+            build,
+            trait_id,
+            variant_id,
+            sample_metadata=None,
+            file_metadata=None,
+            csi=False,
+            fast_mode=False,
     ):
         logging.info(f"Writing headers to BCF/VCF: {path}")
 
@@ -129,7 +130,8 @@ class Vcf:
         # SAMPLES
         header.samples.add(trait_id)
         if file_metadata is not None:
-            meta_string = "".join(f",{k}={sample_metadata[k]}" for k in sample_metadata)
+            meta_string = "".join(
+                f",{k}={sample_metadata[k]}" for k in sample_metadata)
             header.add_line(f"##SAMPLE=<ID={trait_id}{meta_string}>")
 
         # CONTIG
@@ -153,17 +155,16 @@ class Vcf:
                 continue
 
             while gwas_idx[contig]:
-                chr_pos = heappop(gwas_idx[contig])
+                pointer = heappop(gwas_idx[contig])
 
                 if fast_mode:
-                    result = gwas_file['{}_{}'.format(contig, chr_pos)]
+                    result = gwas_file['{}_{}_{}'.format(contig, pointer[0], pointer[1])]
                 else:
                     # load GWAS result
-                    gwas_file.seek(chr_pos[1])
+                    gwas_file.seek(pointer[1])
                     result = pickle.load(gwas_file)
 
-
-                #result.nlog_pval = result.nlog_pval
+                # result.nlog_pval = result.nlog_pval
 
                 # check floats
                 if Vcf.is_float32_lossy(result.b):
@@ -198,8 +199,24 @@ class Vcf:
                 assert " " not in record.chrom
                 record.pos = result.pos
                 assert record.pos > 0
-                record.id = Vcf.remove_illegal_chars(result.dbsnpid)
+
                 record.alleles = (result.ref, result.alt)
+
+                if variant_id == 'concatenate':
+                    record.id = "{}_{}:{}:{}:{}".format(build, record.chrom,
+                                                        record.pos,
+                                                        record.alleles[0],
+                                                        record.alleles[1])
+                elif variant_id == 'alphabetical_order':
+                    sorted_alleles = sorted(record.alleles)
+                    record.id = "{}_{}:{}:{}:{}".format(build, record.chrom,
+                                                        record.pos,
+                                                        sorted_alleles[0],
+                                                        sorted_alleles[1])
+                else:  # rsid
+                    record.id = Vcf.remove_illegal_chars(result.dbsnpid)
+
+
                 record.filter.add(result.vcf_filter)
 
                 if result.b is not None:
@@ -220,7 +237,7 @@ class Vcf:
                 if result.ncase is not None:
                     record.samples[trait_id]["NC"] = round(result.ncase)
                 if result.dbsnpid is not None:
-                    record.samples[trait_id]["ID"] = record.id
+                    record.samples[trait_id]["ID"] = Vcf.remove_illegal_chars(result.dbsnpid)
 
                 # write to file
                 vcf.write(record)

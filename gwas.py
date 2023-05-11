@@ -4,6 +4,7 @@ import pickle
 import re
 import tempfile
 from heapq import heappush
+import uuid
 
 from vgraph import norm
 
@@ -110,8 +111,9 @@ class Gwas:
         self.dbsnpid = None
         for rec in dbsnp.fetch(contig=self.chrom, start=self.pos - 1, stop=self.pos):
             if rec.pos == self.pos:
-                self.dbsnpid = rec.id
-                break
+                if self.ref in rec.alleles and self.alt in rec.alleles:
+                    self.dbsnpid = rec.id
+                    break
 
     def check_alleles_are_valid(self):
         for nucleotide in self.alt:
@@ -367,8 +369,9 @@ class Gwas:
                 file_idx[result.chrom] = []
 
             if fast_mode:
-                heappush(file_idx[result.chrom], result.pos)
-                results[f"{result.chrom}_{result.pos}"] = result
+                uid = uuid.uuid4()
+                heappush(file_idx[result.chrom], (result.pos, uid))
+                results[f"{result.chrom}_{result.pos}_{uid}"] = result
             else:
                 heappush(file_idx[result.chrom], (result.pos, results.tell()))
                 try:
